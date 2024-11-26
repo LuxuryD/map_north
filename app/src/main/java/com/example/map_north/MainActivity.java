@@ -80,6 +80,9 @@ public class MainActivity extends AppCompatActivity{
     private MapView mMapView = null;
     private LocationClient  mLocationClient=null;
     private BDLocation mCurLocation=null;
+    private EditText mInputText=null;
+
+    private PoiSearch mPoiSearch=null;
 
     //权限数组
     private final String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.WRITE_EXTERNAL_STORAGE};
@@ -127,6 +130,63 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
+    //创建poi检索监听器
+    OnGetPoiSearchResultListener poiSearchListener = new OnGetPoiSearchResultListener() {
+        @Override
+        public void onGetPoiResult(PoiResult poiResult) {
+            //显示搜索结果
+            List<PoiInfo> poiList=poiResult.getAllPoi();
+            PoiAdapter adapter=new PoiAdapter(MainActivity.this,R.layout.poi_item,poiList);
+            ListView listView=findViewById(R.id.searchResult);
+            listView.setAdapter(adapter);
+            listView.setVisibility(View.VISIBLE);
+
+            //当滑动到底部时加载更多搜索结果
+            listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+                @Override
+                public void onScrollStateChanged(AbsListView view, int scrollState) {
+                    if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE) {
+                        // 判断是否滚动到底部
+                        if (view.getLastVisiblePosition() == view.getCount() - 1) {
+                            //加载更多
+                            int curPage=poiResult.getCurrentPageNum();
+                            int totalPage=poiResult.getTotalPageNum();
+                            if(curPage< totalPage)
+                            {
+                                poiResult.setCurrentPageNum(curPage+1);
+                                String city=mCurLocation.getCity();
+                                TextView textV=findViewById(R.id.inputText);
+                                String keyWord=textV.getText().toString();
+                                mPoiSearch.searchInCity(new PoiCitySearchOption()
+                                        .city(city)
+                                        .keyword(keyWord)
+                                        .pageNum(curPage+1));
+                            }
+                        }
+                    }
+                }
+
+                @Override
+                public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+
+                }
+            });
+        }
+        @Override
+        public void onGetPoiDetailResult(PoiDetailSearchResult poiDetailSearchResult) {
+
+        }
+        @Override
+        public void onGetPoiIndoorResult(PoiIndoorResult poiIndoorResult) {
+
+        }
+        //废弃
+        @Override
+        public void onGetPoiDetailResult(PoiDetailResult poiDetailResult) {
+
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -139,13 +199,14 @@ public class MainActivity extends AppCompatActivity{
         mMapView.getMap().setMyLocationEnabled(true);
         //定位初始化
         try {
-            mLocationClient = new LocationClient(this);
+            mLocationClient = new LocationClient(getApplicationContext());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         //通过LocationClientOption设置LocationClient相关参数
         LocationClientOption option = new LocationClientOption();
         option.setIsNeedAddress(true);
+        option.setOpenGnss(true);
         option.setCoorType("bd09ll"); // 设置坐标类型
         option.setScanSpan(1000);
         //设置locationClientOption
@@ -169,5 +230,45 @@ public class MainActivity extends AppCompatActivity{
 
         mLocationClient.start();
 
+        //获得检索输入框控件
+        mInputText=findViewById(R.id.inputText);
+        mInputText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                boolean ret=false;
+                if(actionId== EditorInfo.IME_ACTION_SEARCH)
+                {
+                    String city=mCurLocation.getCity();
+                    String keyWord=v.getText().toString();
+                    ret=mPoiSearch.searchInCity(new PoiCitySearchOption()
+                            .city(city)
+                            .keyword(keyWord)
+                            .pageNum(0));
+                    //搜索后隐藏键盘
+                    InputMethodManager imum=(InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+                    View view=getWindow().peekDecorView();
+                    if(view!=null)
+                    {
+                        imum.hideSoftInputFromWindow(view.getWindowToken(),0);
+                    }
+                }
+                return ret;
+            }
+        });
+        //创建poi检索实例
+        mPoiSearch = PoiSearch.newInstance();
+        //设置监听器
+        mPoiSearch.setOnGetPoiSearchResultListener(poiSearchListener);
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+            ListView listView = findViewById(R.id.searchResult);
+            int left = listView.getLeft(), top = listView.getTop(), right = left + listView.getWidth(), bottom = top + listView.getHeight();
+            if (ev.getX() < left || ev.getX() > right || ev.getY() < top || ev.getY() > bottom)//点击搜索结果列表之外区域，隐藏搜索结果列表
+                listView.setVisibility(View.GONE);
+        }
+        return super.dispatchTouchEvent(ev);
     }
 }
