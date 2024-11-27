@@ -1,6 +1,7 @@
 package com.example.map_north;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.baidu.location.BDAbstractLocationListener;
@@ -81,6 +82,9 @@ public class MainActivity extends AppCompatActivity{
     private LocationClient  mLocationClient=null;
     private BDLocation mCurLocation=null;
     private EditText mInputText=null;
+    private File mSDCardPath=null;
+    private static final String APP_FOLDER_NAME = "map_north";
+    private PoiInfo mDestation=null;
 
     private PoiSearch mPoiSearch=null;
 
@@ -259,6 +263,152 @@ public class MainActivity extends AppCompatActivity{
         mPoiSearch = PoiSearch.newInstance();
         //设置监听器
         mPoiSearch.setOnGetPoiSearchResultListener(poiSearchListener);
+
+        //a关闭搜索结果
+        ListView listView = findViewById(R.id.searchResult);
+        listView.setVisibility(View.GONE);
+        //显示开始导航按钮
+        Button startNav=findViewById(R.id.startnavi);
+        startNav.setVisibility(View.VISIBLE);
+        Button simNav=findViewById(R.id.simnavi);
+        simNav.setVisibility(View.VISIBLE);
+
+        //导航初始化
+        File sdDir = null;
+        boolean sdCardExist = Environment.getExternalStorageState()
+                .equals(android.os.Environment.MEDIA_MOUNTED);//判断sd卡是否存在
+        if(sdCardExist)
+        {
+            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
+        }
+
+        if(!initDirs())
+        {
+            return;
+        }
+
+        BNaviInitConfig navInitCfg= new BNaviInitConfig.Builder().sdcardRootPath(mSDCardPath.toString())
+                .naviInitListener(new IBaiduNaviManager.INaviInitListener() {
+                    @Override
+                    public void onAuthResult(int i, String s) {
+                        if(i==0)
+                        {
+                            Toast.makeText(MainActivity.this, "key校验成功!", Toast.LENGTH_SHORT).show();
+                        }
+                        else if(i==1)
+                        {
+                            Toast.makeText(MainActivity.this, "key校验失败, " + s, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void initStart() {
+
+                    }
+
+                    @Override
+                    public void initSuccess() {
+                        Toast.makeText(MainActivity.this, "百度导航引擎初始化成功", Toast.LENGTH_SHORT).show();
+
+                    }
+
+                    @Override
+                    public void initFailed(int i) {
+                        Toast.makeText(MainActivity.this, "百度导航引擎初始化失败", Toast.LENGTH_SHORT).show();
+
+                    }
+                }).build();
+        BaiduNaviManagerFactory.getBaiduNaviManager().init(getApplicationContext(),navInitCfg);
+
+        //增加开始导航按钮的响应
+        startNav=findViewById(R.id.startnavi);
+        startNav.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startNavi(true);
+            }
+        });
+        simNav=findViewById(R.id.simnavi);
+        simNav.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startNavi(false);
+            }
+        });
+    }
+
+    private void startNavi(boolean isRealNavi) {
+        if(mCurLocation==null||mDestation==null)
+            return;
+        BNRoutePlanNode sNode = new BNRoutePlanNode.Builder()
+                .latitude(mCurLocation.getLatitude())
+                .longitude(mCurLocation.getLongitude())
+                .name("我的位置")
+                .description("我的位置")
+                .build();
+        BNRoutePlanNode eNode = new BNRoutePlanNode.Builder()
+                .latitude(mDestation.getLocation().latitude)
+                .longitude(mDestation.getLocation().longitude)
+                .name(mDestation.name)
+                .description(mDestation.name)
+                .build();
+        List<BNRoutePlanNode> list = new ArrayList<>();
+        list.add(sNode);
+        list.add(eNode);
+        BaiduNaviManagerFactory.getRoutePlanManager().routePlan(
+                list,
+                IBNRoutePlanManager.RoutePlanPreference.ROUTE_PLAN_PREFERENCE_DEFAULT,
+                null,
+                new Handler(Looper.getMainLooper()) {
+                    @Override
+                    public void handleMessage(Message msg) {
+                        switch (msg.what) {
+                            case IBNRoutePlanManager.MSG_NAVI_ROUTE_PLAN_START:
+                                Toast.makeText(MainActivity.this.getApplicationContext(),
+                                        "算路开始", Toast.LENGTH_SHORT).show();
+                                break;
+                            case IBNRoutePlanManager.MSG_NAVI_ROUTE_PLAN_SUCCESS:
+                                Toast.makeText(MainActivity.this.getApplicationContext(),
+                                        "算路成功", Toast.LENGTH_SHORT).show();
+                                break;
+                            case IBNRoutePlanManager.MSG_NAVI_ROUTE_PLAN_FAILED:
+                                Toast.makeText(MainActivity.this.getApplicationContext(),
+                                        "算路失败", Toast.LENGTH_SHORT).show();
+                                break;
+                            case IBNRoutePlanManager.MSG_NAVI_ROUTE_PLAN_TO_NAVI:
+                                Toast.makeText(MainActivity.this.getApplicationContext(),
+                                        "算路成功准备进入导航", Toast.LENGTH_SHORT).show();
+                                Intent intent = new Intent(MainActivity.this.getApplicationContext(),
+                                        DemoGuideActivity.class);
+                                intent.putExtra("isRealNavi",isRealNavi);
+                                startActivity(intent);
+                                break;
+                            default:
+                                // nothing
+                                break;
+                        }
+                    }
+
+                });
+    }
+
+    private boolean initDirs() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            mSDCardPath = Environment.getStorageDirectory();
+        }
+        if (mSDCardPath == null) {
+            return false;
+        }
+        File f = new File(mSDCardPath, APP_FOLDER_NAME);
+        if (!f.exists()) {
+            try {
+                f.mkdir();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -271,4 +421,5 @@ public class MainActivity extends AppCompatActivity{
         }
         return super.dispatchTouchEvent(ev);
     }
+    public void setDestation(PoiInfo poi){mDestation=poi;}
 }
