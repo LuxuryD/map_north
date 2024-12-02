@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity{
     private File mSDCardPath=null;
     private static final String APP_FOLDER_NAME = "map_north";
     private PoiInfo mDestation=null;
+    private ListView listView = null;
 
     private PoiSearch mPoiSearch=null;
 
@@ -260,7 +261,7 @@ public class MainActivity extends AppCompatActivity{
         mPoiSearch.setOnGetPoiSearchResultListener(poiSearchListener);
 
         //a关闭搜索结果
-        ListView listView = findViewById(R.id.searchResult);
+        listView = findViewById(R.id.searchResult);
         listView.setVisibility(View.GONE);
         //显示开始导航按钮
         Button startNav=findViewById(R.id.startnavi);
@@ -410,6 +411,7 @@ public class MainActivity extends AppCompatActivity{
     }
 
     public void setDestation(PoiInfo poi){
-        mDestation=poi;
+        listView.setVisibility(View.GONE);
+        mDestation = poi;
     }
 }

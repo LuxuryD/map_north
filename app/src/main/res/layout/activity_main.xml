@@ -25,24 +25,13 @@
             android:layout_height="50dp"
             android:background="@android:drawable/editbox_dropdown_dark_frame"
             android:ems="10"
-            android:hint="起始点"
+            android:hint="请输入目的地"
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:textColor="@color/white"
             android:layout_weight="1"
             app:layout_anchorGravity="top" />
-        <EditText
-            android:id="@+id/inputText2"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:background="@android:drawable/editbox_dropdown_dark_frame"
-            android:ems="10"
-            android:hint="目的点"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:textColor="@color/white"
-            android:layout_weight="1"
-            app:layout_anchorGravity="top" />
+
     </LinearLayout>
 
     <Button
