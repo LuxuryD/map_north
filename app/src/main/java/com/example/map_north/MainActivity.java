@@ -73,10 +73,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.baidu.mapapi.map.BaiduMap.MAP_TYPE_NONE;
-import static com.baidu.mapapi.map.BaiduMap.MAP_TYPE_NORMAL;
-import static com.baidu.mapapi.map.BaiduMap.MAP_TYPE_SATELLITE;
-
 public class MainActivity extends AppCompatActivity{
     private MapView mMapView = null;
     private LocationClient  mLocationClient=null;
@@ -229,7 +225,6 @@ public class MainActivity extends AppCompatActivity{
                 || checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             //开始权限请求
             requestPermissionIntent.launch(permissions);
-            Log.e("##########", "requestPermissionIntent");
         }
 
         mLocationClient.start();
@@ -270,8 +265,6 @@ public class MainActivity extends AppCompatActivity{
         //显示开始导航按钮
         Button startNav=findViewById(R.id.startnavi);
         startNav.setVisibility(View.VISIBLE);
-        Button simNav=findViewById(R.id.simnavi);
-        simNav.setVisibility(View.VISIBLE);
 
         //导航初始化
         File sdDir = null;
@@ -328,13 +321,7 @@ public class MainActivity extends AppCompatActivity{
                 startNavi(true);
             }
         });
-        simNav=findViewById(R.id.simnavi);
-        simNav.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startNavi(false);
-            }
-        });
+
     }
 
     private void startNavi(boolean isRealNavi) {
@@ -421,5 +408,8 @@ public class MainActivity extends AppCompatActivity{
         }
         return super.dispatchTouchEvent(ev);
     }
-    public void setDestation(PoiInfo poi){mDestation=poi;}
+
+    public void setDestation(PoiInfo poi){
+        mDestation=poi;
+    }
 }
